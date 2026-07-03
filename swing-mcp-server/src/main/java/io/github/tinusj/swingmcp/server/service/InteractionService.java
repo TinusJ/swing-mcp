@@ -32,6 +32,31 @@ public class InteractionService {
         return registry.require().send(CommandType.CLICK, params);
     }
 
+    /** Moves the mouse over a component to trigger hover effects and tooltips. */
+    public Object hover(String uid) {
+        return registry.require().send(CommandType.HOVER, Map.of("uid", uid));
+    }
+
+    /** Gives keyboard focus to a component. */
+    public Object focus(String uid) {
+        return registry.require().send(CommandType.FOCUS, Map.of("uid", uid));
+    }
+
+    /** Types text character-by-character using key events. */
+    public Object typeText(String text, String uid) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("text", text);
+        if (uid != null && !uid.isBlank()) {
+            params.put("uid", uid);
+        }
+        return registry.require().send(CommandType.TYPE_TEXT, params);
+    }
+
+    /** Opens the context menu of a component and clicks an item by path. */
+    public Object selectContextMenuItem(String uid, String path) {
+        return registry.require().send(CommandType.SELECT_CONTEXT_MENU_ITEM, Map.of("uid", uid, "path", path));
+    }
+
     /** Fills a text component, spinner, or editable combo box. */
     public Object fill(String uid, String text) {
         return registry.require().send(CommandType.FILL, Map.of("uid", uid, "text", text));

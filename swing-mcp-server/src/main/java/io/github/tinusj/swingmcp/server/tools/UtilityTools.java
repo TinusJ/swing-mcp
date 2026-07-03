@@ -23,11 +23,15 @@ public class UtilityTools {
 
     @Tool(name = "wait_for", description = """
         Wait until a UI condition is met or a timeout elapses. Condition types: \
-        WINDOW_TITLE, COMPONENT_TEXT, COMPONENT_VISIBLE, COMPONENT_ENABLED.""")
+        WINDOW_TITLE, COMPONENT_TEXT, COMPONENT_VISIBLE, COMPONENT_ENABLED, \
+        COMPONENT_EXISTS (a component matching a text/name query appears), \
+        COMPONENT_GONE (no component matches the query), \
+        WINDOW_COUNT (the number of visible windows equals the expected value), \
+        EDT_IDLE (the event dispatch queue has drained).""")
     public String waitFor(
-            @ToolParam(description = "Condition type: WINDOW_TITLE, COMPONENT_TEXT, COMPONENT_VISIBLE, or COMPONENT_ENABLED") String conditionType,
-            @ToolParam(description = "Component UID (required for component conditions)", required = false) String uid,
-            @ToolParam(description = "Expected value for the condition", required = false) String expectedValue,
+            @ToolParam(description = "Condition type: WINDOW_TITLE, COMPONENT_TEXT, COMPONENT_VISIBLE, COMPONENT_ENABLED, COMPONENT_EXISTS, COMPONENT_GONE, WINDOW_COUNT, or EDT_IDLE") String conditionType,
+            @ToolParam(description = "Component UID (required for COMPONENT_TEXT/VISIBLE/ENABLED conditions)", required = false) String uid,
+            @ToolParam(description = "Expected value: window title, component text, search query, or window count", required = false) String expectedValue,
             @ToolParam(description = "Timeout in milliseconds (default 5000)", required = false) Long timeoutMs) {
         return ToolJson.toJson(waitService.waitFor(conditionType, uid, expectedValue, timeoutMs));
     }

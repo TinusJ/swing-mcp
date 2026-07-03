@@ -16,6 +16,35 @@ mouse emulation.
 | `button` | string | no | `LEFT` (default), `RIGHT`, `MIDDLE` |
 | `clickType` | string | no | `SINGLE` (default) or `DOUBLE` |
 
+## `hover`
+
+Move the mouse over a component to trigger hover effects and tooltips
+(mouse-emulation move without a click).
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `uid` | string | yes | Component UID |
+
+## `focus`
+
+Give keyboard focus to a component so that subsequent `press_key` or
+`type_text` calls target it deterministically.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `uid` | string | yes | Component UID |
+
+## `type_text`
+
+Type text character-by-character into the focused component using key events
+(as opposed to `fill`, which sets the value directly). Use this for UIs with
+per-keystroke listeners, input masks, or autocompletion.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | yes | Text to type |
+| `uid` | string | no | Component UID to focus before typing |
+
 ## `fill`
 
 Set the text/value of a text component (`JTextField`, `JTextArea`, …),
@@ -65,6 +94,17 @@ Click a menu item in the active window's menu bar.
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `path` | string | yes | Menu path separated by ` > `, e.g. `File > Save` |
+
+## `select_context_menu_item`
+
+Open the context menu of a component and click an item by path. The
+component's registered popup menu is used when available; otherwise a
+right-click popup trigger is dispatched.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `uid` | string | yes | Component UID |
+| `path` | string | yes | Menu item path separated by ` > `, e.g. `Copy` or `Refactor > Rename` |
 
 ## `press_key`
 

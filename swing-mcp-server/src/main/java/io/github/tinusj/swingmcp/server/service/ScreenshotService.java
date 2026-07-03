@@ -39,6 +39,18 @@ public class ScreenshotService {
      * @return map with the saved file path and image dimensions
      */
     public Map<String, Object> screenshot(String uid) {
+        return screenshot(uid, null);
+    }
+
+    /**
+     * Takes a screenshot of the active window or a specific component.
+     *
+     * @param uid         optional component UID; null for the whole active window
+     * @param returnImage when true, the base64-encoded PNG data is included in
+     *                    the result for clients without local filesystem access
+     * @return map with the saved file path, image dimensions, and optionally the image data
+     */
+    public Map<String, Object> screenshot(String uid, Boolean returnImage) {
         Map<String, Object> params = new HashMap<>();
         if (uid != null && !uid.isBlank()) {
             params.put("uid", uid);
@@ -56,6 +68,9 @@ public class ScreenshotService {
         out.put("mimeType", map.get("mimeType"));
         out.put("width", map.get("width"));
         out.put("height", map.get("height"));
+        if (Boolean.TRUE.equals(returnImage)) {
+            out.put("imageBase64", base64);
+        }
         return out;
     }
 

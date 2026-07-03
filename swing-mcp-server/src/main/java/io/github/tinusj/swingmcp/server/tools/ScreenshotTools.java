@@ -19,9 +19,11 @@ public class ScreenshotTools {
 
     @Tool(name = "take_screenshot", description = """
         Take a PNG screenshot of the active window, or of a single component if a UID is given. \
-        The image is saved to the configured screenshot directory and its path is returned.""")
+        The image is saved to the configured screenshot directory and its path is returned. \
+        Set returnImage=true to also receive the base64-encoded PNG data inline.""")
     public String takeScreenshot(
-            @ToolParam(description = "Optional component UID; omit to capture the whole active window", required = false) String uid) {
-        return ToolJson.toJson(screenshotService.screenshot(uid));
+            @ToolParam(description = "Optional component UID; omit to capture the whole active window", required = false) String uid,
+            @ToolParam(description = "When true, include the base64-encoded PNG data in the response", required = false) Boolean returnImage) {
+        return ToolJson.toJson(screenshotService.screenshot(uid, returnImage));
     }
 }

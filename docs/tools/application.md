@@ -1,8 +1,9 @@
 # Application lifecycle tools
 
 Tools for starting, attaching to, and stopping Swing application sessions.
-Only one session is active at a time; `launch_app` or `attach_to_app` replaces
-any existing session.
+Multiple named sessions can be open concurrently; one of them is the *active*
+session that all other tools operate on. Use `list_sessions` and
+`select_session` to switch between applications.
 
 ## `launch_app`
 
@@ -14,8 +15,10 @@ it back through a response file.
 |---|---|---|---|
 | `command` | string | yes | Full java command line, e.g. `java -jar /path/to/app.jar` |
 | `workingDir` | string | no | Working directory for the launched process |
+| `sessionId` | string | no | Session id; auto-generated when omitted. Reusing an id replaces (and closes) that session |
 
-**Returns:** session info (mode, PID, agent port).
+**Returns:** session info (session id, mode, PID, agent port). The new session
+becomes the active one.
 
 **Notes:**
 - Requires `swing.mcp.agent-jar` (or the `SWING_MCP_AGENT_JAR` environment
@@ -31,8 +34,10 @@ loading.
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `pid` | number | yes | Process id of the target Swing JVM |
+| `sessionId` | string | no | Session id; auto-generated when omitted. Reusing an id replaces (and closes) that session |
 
-**Returns:** session info (mode, PID, agent port).
+**Returns:** session info (session id, mode, PID, agent port). The new session
+becomes the active one.
 
 **Notes:**
 - The target JVM must allow dynamic attach.
@@ -41,20 +46,41 @@ loading.
 
 ## `stop_app`
 
-Close the current session.
+Close a session — the active one by default.
 
-No parameters.
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `sessionId` | string | no | Session id to close; the active session when omitted |
 
 **Behaviour:**
 - Launched application → the process is terminated.
 - Attached application → the agent connection is closed; the target keeps
   running.
+- When the active session is closed, another open session (if any) becomes
+  active.
 
-## `app_status`
+## `list_sessions`
 
-Get the status of the current application session.
+List all open application sessions.
 
 No parameters.
 
-**Returns:** `connected`, `alive`, `mode` (`LAUNCHED`/`ATTACHED`), `pid`,
+**Returns:** for each session: `sessionId`, `active`, `alive`, `mode`, `pid`,
 `agentPort`, `description`.
+
+## `select_session`
+
+Make a session the active one that all other tools operate on.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `sessionId` | string | yes | Session id from `list_sessions` |
+
+## `app_status`
+
+Get the status of the active application session.
+
+No parameters.
+
+**Returns:** `connected`, `sessionId`, `sessionCount`, `alive`, `mode`
+(`LAUNCHED`/`ATTACHED`), `pid`, `agentPort`, `description`.

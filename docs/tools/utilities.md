@@ -7,10 +7,23 @@ synchronising with asynchronous UI updates before taking the next action.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `conditionType` | string | yes | `WINDOW_TITLE`, `COMPONENT_TEXT`, `COMPONENT_VISIBLE`, or `COMPONENT_ENABLED` |
-| `uid` | string | no | Component UID (required for the component conditions) |
+| `conditionType` | string | yes | See condition types below |
+| `uid` | string | no | Component UID (required for `COMPONENT_TEXT`, `COMPONENT_VISIBLE`, `COMPONENT_ENABLED`) |
 | `expectedValue` | string | no | Expected value for the condition |
 | `timeoutMs` | number | no | Timeout in milliseconds (default 5000) |
+
+**Condition types:**
+
+| Condition | Description |
+|---|---|
+| `WINDOW_TITLE` | A visible window's title contains `expectedValue` |
+| `COMPONENT_TEXT` | The component's text contains `expectedValue` |
+| `COMPONENT_VISIBLE` | The component is visible |
+| `COMPONENT_ENABLED` | The component is enabled |
+| `COMPONENT_EXISTS` | A component matching the `expectedValue` text/name query exists |
+| `COMPONENT_GONE` | No component matches the `expectedValue` text/name query |
+| `WINDOW_COUNT` | The number of visible windows equals `expectedValue` |
+| `EDT_IDLE` | The event dispatch queue has drained |
 
 ## `evaluate_java`
 
