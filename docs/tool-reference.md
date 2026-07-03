@@ -1,5 +1,9 @@
 # Swing MCP — Tool Reference
 
+> Detailed per-category documentation — including a [roadmap](tools/roadmap.md)
+> of tools that are not yet implemented — lives under [docs/tools](tools/README.md).
+> This page is a single-page quick reference.
+
 The Swing MCP server exposes the following tools over the MCP stdio transport.
 Component `uid` values come from `take_snapshot`; take a fresh snapshot after any
 action that changes the UI.

@@ -19,7 +19,7 @@ MCP client (stdio) ──▶ swing-mcp-server ──localhost socket──▶ sw
 2. The agent binds a loopback-only port in `swing.mcp.agent-port-min..max` and reports it back through a response file.
 3. Tools such as `take_snapshot`, `click`, and `fill` are forwarded as JSON line commands and executed on the Event Dispatch Thread.
 
-See [docs/tool-reference.md](docs/tool-reference.md) for the full tool list and configuration reference.
+See [docs/tools](docs/tools/README.md) for the full tool documentation (per-category pages and a [roadmap](docs/tools/roadmap.md) of planned tools), or [docs/tool-reference.md](docs/tool-reference.md) for the single-page quick reference.
 
 ## Building
 
