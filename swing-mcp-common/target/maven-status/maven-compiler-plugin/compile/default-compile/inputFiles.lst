@@ -1,0 +1,11 @@
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/command/CommandRequest.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/command/CommandResponse.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/dto/ComponentDescriptor.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/dto/SnapshotNode.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/AttachMode.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/ClickType.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/CommandType.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/ComponentStateFilter.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/MouseButton.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/ScrollDirection.java
+/home/runner/work/swing-mcp/swing-mcp/swing-mcp-common/src/main/java/io/github/tinusj/swingmcp/common/enums/WaitConditionType.java
