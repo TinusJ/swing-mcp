@@ -33,7 +33,9 @@ GUI integration tests are skipped in headless environments; CI runs them under `
 
 ## Running
 
-Build everything, then register the server with your MCP client:
+Build everything, then register the server with your MCP client (see
+[docs/installation.md](docs/installation.md) for per-client instructions —
+IntelliJ IDEA, VS Code, Claude Desktop, Claude Code, Cursor, Windsurf):
 
 ```json
 {
