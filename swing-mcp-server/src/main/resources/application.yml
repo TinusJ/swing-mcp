@@ -13,6 +13,7 @@ swing:
   mcp:
     agent-port-min: 40000
     agent-port-max: 40100
+    agent-jar: ${SWING_MCP_AGENT_JAR:}
     screenshot-dir: ${java.io.tmpdir}/swing-mcp-screenshots
     tool-timeout-ms: 30000
     evaluate:

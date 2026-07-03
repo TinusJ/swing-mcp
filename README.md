@@ -5,9 +5,57 @@ An MCP (Model Context Protocol) server for interacting with Java Swing applicati
 ## Modules
 
 - `swing-mcp-server` — Spring Boot MCP server (stdio transport) exposing Swing automation tools.
-- `swing-mcp-agent` — Java agent for attaching to an already-running Swing JVM by PID.
+- `swing-mcp-agent` — Java agent loaded into the target Swing JVM (at launch via `-javaagent`, or dynamically by PID). Runs a localhost-only JSON line-protocol socket server that executes commands on the Swing EDT.
+- `swing-mcp-common` — Shared command/DTO types between server and agent.
 - `swing-mcp-demo` — Demo Swing application used for integration testing.
 
-## Status
+## How it works
 
-Under initial development.
+```
+MCP client (stdio) ──▶ swing-mcp-server ──localhost socket──▶ swing-mcp-agent (inside target JVM) ──▶ Swing EDT
+```
+
+1. The MCP client calls `launch_app` (starts a JVM with the agent preloaded) or `attach_to_app` (loads the agent into a running JVM by PID).
+2. The agent binds a loopback-only port in `swing.mcp.agent-port-min..max` and reports it back through a response file.
+3. Tools such as `take_snapshot`, `click`, and `fill` are forwarded as JSON line commands and executed on the Event Dispatch Thread.
+
+See [docs/tool-reference.md](docs/tool-reference.md) for the full tool list and configuration reference.
+
+## Building
+
+Requires JDK 21+ and Maven.
+
+```bash
+mvn verify
+```
+
+GUI integration tests are skipped in headless environments; CI runs them under `xvfb`.
+
+## Running
+
+Build everything, then register the server with your MCP client:
+
+```json
+{
+  "mcpServers": {
+    "swing": {
+      "command": "java",
+      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"],
+      "env": {
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+      }
+    }
+  }
+}
+```
+
+Try it against the demo app:
+
+1. `launch_app` with `java -jar swing-mcp-demo/target/swing-mcp-demo-1.0.0-SNAPSHOT.jar`
+2. `take_snapshot` to discover component UIDs
+3. `click`, `fill`, `select_option`, … to interact
+
+## Security notes
+
+- The agent listens on the loopback interface only.
+- `evaluate_java` (arbitrary code execution in the target JVM) is disabled by default; enable with `swing.mcp.evaluate.enabled=true`.
