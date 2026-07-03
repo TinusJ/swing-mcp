@@ -35,6 +35,28 @@ public class WindowTools {
         return ToolJson.toJson(windowService.resizeWindow(width, height));
     }
 
+    @Tool(name = "move_window", description = "Move the active window to the given screen position in pixels.")
+    public String moveWindow(
+            @ToolParam(description = "New x position in pixels", required = false) Integer x,
+            @ToolParam(description = "New y position in pixels", required = false) Integer y) {
+        return ToolJson.toJson(windowService.moveWindow(x, y));
+    }
+
+    @Tool(name = "maximize_window", description = "Maximize the active frame window.")
+    public String maximizeWindow() {
+        return ToolJson.toJson(windowService.setWindowState("MAXIMIZED"));
+    }
+
+    @Tool(name = "minimize_window", description = "Minimize (iconify) the active frame window.")
+    public String minimizeWindow() {
+        return ToolJson.toJson(windowService.setWindowState("MINIMIZED"));
+    }
+
+    @Tool(name = "restore_window", description = "Restore the active frame window to its normal state.")
+    public String restoreWindow() {
+        return ToolJson.toJson(windowService.setWindowState("NORMAL"));
+    }
+
     @Tool(name = "close_window", description = "Close the active window by dispatching a window-closing event.")
     public String closeWindow() {
         return ToolJson.toJson(windowService.closeWindow());

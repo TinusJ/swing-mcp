@@ -25,6 +25,36 @@ public class InteractionTools {
         return ToolJson.toJson(interactionService.click(uid, button, clickType));
     }
 
+    @Tool(name = "hover", description = "Move the mouse over a component by UID to trigger hover effects and tooltips.")
+    public String hover(
+            @ToolParam(description = "Component UID from a snapshot") String uid) {
+        return ToolJson.toJson(interactionService.hover(uid));
+    }
+
+    @Tool(name = "focus", description = "Give keyboard focus to a component by UID so subsequent press_key/type_text calls target it.")
+    public String focus(
+            @ToolParam(description = "Component UID from a snapshot") String uid) {
+        return ToolJson.toJson(interactionService.focus(uid));
+    }
+
+    @Tool(name = "type_text", description = """
+        Type text character-by-character into the focused component using key events \
+        (unlike fill, which sets the value directly). Triggers per-keystroke listeners.""")
+    public String typeText(
+            @ToolParam(description = "Text to type") String text,
+            @ToolParam(description = "Optional component UID to focus before typing", required = false) String uid) {
+        return ToolJson.toJson(interactionService.typeText(text, uid));
+    }
+
+    @Tool(name = "select_context_menu_item", description = """
+        Open the context menu of a component and click an item by path, \
+        e.g. "Copy" or "Refactor > Rename".""")
+    public String selectContextMenuItem(
+            @ToolParam(description = "Component UID from a snapshot") String uid,
+            @ToolParam(description = "Menu item path separated by ' > '") String path) {
+        return ToolJson.toJson(interactionService.selectContextMenuItem(uid, path));
+    }
+
     @Tool(name = "fill", description = "Set the text of a text field/area, spinner, or editable combo box by UID.")
     public String fill(
             @ToolParam(description = "Component UID from a snapshot") String uid,

@@ -23,26 +23,40 @@ public class ApplicationTools {
         Returns session info including the target PID.""")
     public String launchApp(
             @ToolParam(description = "Full java command line to launch the application") String command,
-            @ToolParam(description = "Optional working directory for the launched process", required = false) String workingDir) {
-        return ToolJson.toJson(applicationService.launch(command, workingDir));
+            @ToolParam(description = "Optional working directory for the launched process", required = false) String workingDir,
+            @ToolParam(description = "Optional session id; auto-generated when omitted", required = false) String sessionId) {
+        return ToolJson.toJson(applicationService.launch(command, workingDir, sessionId));
     }
 
     @Tool(name = "attach_to_app", description = """
         Attach the swing-mcp agent to an already-running Swing JVM by process id (PID). \
         The target keeps running when the session is closed.""")
     public String attachToApp(
-            @ToolParam(description = "Process id of the target Swing JVM") long pid) {
-        return ToolJson.toJson(applicationService.attach(pid));
+            @ToolParam(description = "Process id of the target Swing JVM") long pid,
+            @ToolParam(description = "Optional session id; auto-generated when omitted", required = false) String sessionId) {
+        return ToolJson.toJson(applicationService.attach(pid, sessionId));
     }
 
     @Tool(name = "stop_app", description = """
-        Close the current session. A launched application is terminated; \
+        Close a session (the active one by default). A launched application is terminated; \
         an attached application is only disconnected and keeps running.""")
-    public String stopApp() {
-        return applicationService.stop();
+    public String stopApp(
+            @ToolParam(description = "Optional session id; the active session when omitted", required = false) String sessionId) {
+        return applicationService.stop(sessionId);
     }
 
-    @Tool(name = "app_status", description = "Get the status of the current application session (mode, PID, liveness).")
+    @Tool(name = "list_sessions", description = "List all application sessions with their id, mode, PID, liveness, and which one is active.")
+    public String listSessions() {
+        return ToolJson.toJson(applicationService.listSessions());
+    }
+
+    @Tool(name = "select_session", description = "Make the session with the given id the active session that other tools operate on.")
+    public String selectSession(
+            @ToolParam(description = "Session id from list_sessions") String sessionId) {
+        return ToolJson.toJson(applicationService.selectSession(sessionId));
+    }
+
+    @Tool(name = "app_status", description = "Get the status of the active application session (session id, mode, PID, liveness).")
     public String appStatus() {
         return ToolJson.toJson(applicationService.status());
     }

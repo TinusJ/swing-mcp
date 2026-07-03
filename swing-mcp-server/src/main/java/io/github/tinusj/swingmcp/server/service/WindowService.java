@@ -40,6 +40,23 @@ public class WindowService {
         return registry.require().send(CommandType.RESIZE_WINDOW, params);
     }
 
+    /** Moves the active window to a screen position. */
+    public Object moveWindow(Integer x, Integer y) {
+        Map<String, Object> params = new HashMap<>();
+        if (x != null) {
+            params.put("x", x);
+        }
+        if (y != null) {
+            params.put("y", y);
+        }
+        return registry.require().send(CommandType.MOVE_WINDOW, params);
+    }
+
+    /** Changes the extended state of the active frame: MAXIMIZED, MINIMIZED, or NORMAL. */
+    public Object setWindowState(String state) {
+        return registry.require().send(CommandType.SET_WINDOW_STATE, Map.of("state", state));
+    }
+
     /** Closes the active window. */
     public Object closeWindow() {
         return registry.require().send(CommandType.CLOSE_WINDOW, Map.of());

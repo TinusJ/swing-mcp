@@ -1,6 +1,8 @@
 package io.github.tinusj.swingmcp.server.config;
 
 import io.github.tinusj.swingmcp.server.tools.ApplicationTools;
+import io.github.tinusj.swingmcp.server.tools.ClipboardTools;
+import io.github.tinusj.swingmcp.server.tools.DialogTools;
 import io.github.tinusj.swingmcp.server.tools.InteractionTools;
 import io.github.tinusj.swingmcp.server.tools.ScreenshotTools;
 import io.github.tinusj.swingmcp.server.tools.SnapshotTools;
@@ -24,6 +26,8 @@ public class McpToolConfig {
             SnapshotTools snapshotTools,
             WindowTools windowTools,
             InteractionTools interactionTools,
+            DialogTools dialogTools,
+            ClipboardTools clipboardTools,
             ScreenshotTools screenshotTools,
             UtilityTools utilityTools) {
         return MethodToolCallbackProvider.builder()
@@ -32,6 +36,8 @@ public class McpToolConfig {
                 snapshotTools,
                 windowTools,
                 interactionTools,
+                dialogTools,
+                clipboardTools,
                 screenshotTools,
                 utilityTools)
             .build();

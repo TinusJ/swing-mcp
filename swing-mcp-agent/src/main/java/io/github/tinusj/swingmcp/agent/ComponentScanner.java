@@ -2,17 +2,26 @@ package io.github.tinusj.swingmcp.agent;
 
 import io.github.tinusj.swingmcp.common.dto.ComponentDescriptor;
 import io.github.tinusj.swingmcp.common.dto.SnapshotNode;
+import io.github.tinusj.swingmcp.common.enums.ComponentStateFilter;
 import io.github.tinusj.swingmcp.common.enums.ScrollDirection;
+import io.github.tinusj.swingmcp.common.enums.WindowState;
 import java.awt.AWTException;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dialog;
+import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Robot;
+import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -25,17 +34,25 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import javax.swing.tree.TreePath;
 
@@ -63,7 +80,9 @@ public class ComponentScanner {
         if (win == null) {
             return new SnapshotNode("No window", "null", 0, 0, 0, 0, List.of());
         }
-        List<ComponentDescriptor> children = scanComponent(win);
+        ComponentStateFilter filter = ComponentStateFilter.valueOf(
+            getString(params, "filter", "ALL").toUpperCase());
+        List<ComponentDescriptor> children = scanComponent(win, filter);
         Rectangle bounds = win.getBounds();
         return new SnapshotNode(
             getWindowTitle(win),
@@ -434,15 +453,547 @@ public class ComponentScanner {
         }
     }
 
-    private List<ComponentDescriptor> scanComponent(Component comp) {
+    /**
+     * Finds components matching a query without taking a full snapshot.
+     * Params: query (required), by (TEXT, NAME, TOOLTIP, CLASS, or ANY - default ANY).
+     */
+    public List<Map<String, Object>> findComponent(Map<String, Object> params) {
+        String query = getString(params, "query");
+        String by = getString(params, "by", "ANY").toUpperCase();
+        String lowered = query.toLowerCase();
+        List<Map<String, Object>> matches = new ArrayList<>();
+        for (Window w : getVisibleWindows()) {
+            collectMatches(w, lowered, by, matches);
+        }
+        return matches;
+    }
+
+    private void collectMatches(Component comp, String query, String by, List<Map<String, Object>> matches) {
+        if (matchesQuery(comp, query, by)) {
+            matches.add(describeComponent(comp, false));
+        }
+        if (comp instanceof Container container) {
+            for (Component child : container.getComponents()) {
+                collectMatches(child, query, by, matches);
+            }
+        }
+    }
+
+    private boolean matchesQuery(Component comp, String query, String by) {
+        boolean any = "ANY".equals(by);
+        if (any || "TEXT".equals(by)) {
+            String text = extractText(comp);
+            if (text != null && text.toLowerCase().contains(query)) {
+                return true;
+            }
+        }
+        if (any || "NAME".equals(by)) {
+            String name = comp.getName();
+            if (name != null && name.toLowerCase().contains(query)) {
+                return true;
+            }
+        }
+        if (any || "TOOLTIP".equals(by)) {
+            if (comp instanceof JComponent jc) {
+                String tip = jc.getToolTipText();
+                if (tip != null && tip.toLowerCase().contains(query)) {
+                    return true;
+                }
+            }
+        }
+        if (any || "CLASS".equals(by)) {
+            if (comp.getClass().getSimpleName().toLowerCase().contains(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Extracts the model contents of a JTable.
+     * Params: uid (required), startRow, endRow (optional zero-based inclusive range).
+     */
+    public Map<String, Object> getTableData(Map<String, Object> params) {
+        String uid = getString(params, "uid");
+        Component comp = resolveUid(uid);
+        if (!(comp instanceof JTable table)) {
+            throw new IllegalArgumentException("Component " + uid + " is not a JTable");
+        }
+        int rowCount = table.getRowCount();
+        int colCount = table.getColumnCount();
+        int startRow = Math.max(0, getInt(params, "startRow", 0));
+        int endRow = Math.min(rowCount - 1, getInt(params, "endRow", rowCount - 1));
+        List<String> columns = new ArrayList<>();
+        for (int c = 0; c < colCount; c++) {
+            columns.add(table.getColumnName(c));
+        }
+        List<List<Object>> rows = new ArrayList<>();
+        for (int r = startRow; r <= endRow; r++) {
+            List<Object> row = new ArrayList<>();
+            for (int c = 0; c < colCount; c++) {
+                Object value = table.getValueAt(r, c);
+                row.add(value == null ? null : String.valueOf(value));
+            }
+            rows.add(row);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rowCount", rowCount);
+        result.put("columns", columns);
+        result.put("rows", rows);
+        return result;
+    }
+
+    /**
+     * Extracts the model contents of a JList or the visible rows of a JTree.
+     * Params: uid (required), startIndex, endIndex (optional zero-based inclusive range).
+     */
+    public Map<String, Object> getListItems(Map<String, Object> params) {
+        String uid = getString(params, "uid");
+        Component comp = resolveUid(uid);
+        List<String> items = new ArrayList<>();
+        int total;
+        if (comp instanceof JList<?> list) {
+            total = list.getModel().getSize();
+            int start = Math.max(0, getInt(params, "startIndex", 0));
+            int end = Math.min(total - 1, getInt(params, "endIndex", total - 1));
+            for (int i = start; i <= end; i++) {
+                items.add(String.valueOf(list.getModel().getElementAt(i)));
+            }
+        } else if (comp instanceof JTree tree) {
+            total = tree.getRowCount();
+            int start = Math.max(0, getInt(params, "startIndex", 0));
+            int end = Math.min(total - 1, getInt(params, "endIndex", total - 1));
+            for (int i = start; i <= end; i++) {
+                TreePath path = tree.getPathForRow(i);
+                StringBuilder sb = new StringBuilder();
+                for (Object node : path.getPath()) {
+                    if (sb.length() > 0) {
+                        sb.append(" > ");
+                    }
+                    sb.append(node);
+                }
+                items.add(sb.toString());
+            }
+        } else {
+            throw new IllegalArgumentException("Component " + uid + " is not a JList or JTree");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("itemCount", total);
+        result.put("items", items);
+        return result;
+    }
+
+    /**
+     * Moves the mouse over a component to trigger hover effects and tooltips.
+     */
+    public String hover(Map<String, Object> params) throws AWTException {
+        String uid = getString(params, "uid");
+        Component comp = resolveUid(uid);
+        if (GraphicsEnvironment.isHeadless()) {
+            throw new IllegalStateException("Cannot hover in headless environment");
+        }
+        Robot robot = new Robot();
+        Point loc = comp.getLocationOnScreen();
+        robot.mouseMove(loc.x + comp.getWidth() / 2, loc.y + comp.getHeight() / 2);
+        return "Hovering over: " + uid;
+    }
+
+    /**
+     * Gives keyboard focus to a component by UID.
+     */
+    public String focus(Map<String, Object> params) {
+        String uid = getString(params, "uid");
+        Component comp = resolveUid(uid);
+        Window win = SwingUtilities.getWindowAncestor(comp);
+        if (win != null) {
+            win.toFront();
+        }
+        boolean requested = comp.requestFocusInWindow();
+        if (!requested) {
+            comp.requestFocus();
+        }
+        return "Focus requested: " + uid;
+    }
+
+    /**
+     * Types text character-by-character into the focused component using key events.
+     * Params: text (required), uid (optional - focus this component first).
+     */
+    public String typeText(Map<String, Object> params) throws Exception {
+        String text = getString(params, "text");
+        String uid = (String) params.get("uid");
+        if (GraphicsEnvironment.isHeadless()) {
+            throw new IllegalStateException("Cannot type text in headless environment");
+        }
+        if (uid != null && !uid.isBlank()) {
+            invokeAndWaitQuietly(() -> focus(Map.of("uid", uid)));
+        }
+        Robot robot = new Robot();
+        robot.setAutoDelay(20);
+        for (char ch : text.toCharArray()) {
+            typeChar(robot, ch);
+        }
+        return "Typed " + text.length() + " characters";
+    }
+
+    private void typeChar(Robot robot, char ch) {
+        boolean upper = Character.isUpperCase(ch) || "~!@#$%^&*()_+{}|:\"<>?".indexOf(ch) >= 0;
+        int code = KeyEvent.getExtendedKeyCodeForChar(ch);
+        if (code == KeyEvent.VK_UNDEFINED) {
+            throw new IllegalArgumentException("Cannot type character: " + ch);
+        }
+        if (upper) {
+            robot.keyPress(KeyEvent.VK_SHIFT);
+        }
+        try {
+            robot.keyPress(code);
+            robot.keyRelease(code);
+        } finally {
+            if (upper) {
+                robot.keyRelease(KeyEvent.VK_SHIFT);
+            }
+        }
+    }
+
+    /**
+     * Opens the context menu of a component and clicks an item by path.
+     * Params: uid (required), path (required, e.g. "Copy" or "Sub Menu > Item").
+     */
+    public String selectContextMenuItem(Map<String, Object> params) throws Exception {
+        String uid = getString(params, "uid");
+        String pathStr = getString(params, "path");
+        Component comp = resolveUid(uid);
+        String[] parts = pathStr.split("\\s*>\\s*");
+
+        AtomicReference<JPopupMenu> popupRef = new AtomicReference<>();
+        invokeAndWaitQuietly(() -> {
+            JPopupMenu popup = findComponentPopupMenu(comp);
+            if (popup != null) {
+                popup.show(comp, comp.getWidth() / 2, comp.getHeight() / 2);
+                popupRef.set(popup);
+            } else {
+                dispatchPopupTrigger(comp);
+            }
+            return null;
+        });
+        // Give the popup a moment to appear when triggered via mouse events.
+        if (popupRef.get() == null) {
+            Thread.sleep(250);
+        }
+        try {
+            return invokeAndWaitQuietly(() -> {
+                JPopupMenu popup = popupRef.get() != null ? popupRef.get() : findVisiblePopupMenu();
+                if (popup == null) {
+                    throw new IllegalStateException("No context menu appeared for: " + uid);
+                }
+                JMenuItem item = findPopupMenuItem(popup, parts);
+                if (item == null) {
+                    popup.setVisible(false);
+                    throw new IllegalArgumentException("Context menu item not found: " + pathStr);
+                }
+                item.doClick();
+                return "Context menu item clicked: " + pathStr;
+            });
+        } finally {
+            invokeAndWaitQuietly(() -> {
+                JPopupMenu popup = popupRef.get() != null ? popupRef.get() : findVisiblePopupMenu();
+                if (popup != null && popup.isVisible()) {
+                    popup.setVisible(false);
+                }
+                return null;
+            });
+        }
+    }
+
+    private JPopupMenu findComponentPopupMenu(Component comp) {
+        Component current = comp;
+        while (current != null) {
+            if (current instanceof JComponent jc && jc.getComponentPopupMenu() != null) {
+                return jc.getComponentPopupMenu();
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private void dispatchPopupTrigger(Component comp) {
+        int x = comp.getWidth() / 2;
+        int y = comp.getHeight() / 2;
+        long now = System.currentTimeMillis();
+        comp.dispatchEvent(new MouseEvent(comp, MouseEvent.MOUSE_PRESSED, now, 0, x, y, 1, true, MouseEvent.BUTTON3));
+        comp.dispatchEvent(new MouseEvent(comp, MouseEvent.MOUSE_RELEASED, now, 0, x, y, 1, true, MouseEvent.BUTTON3));
+        comp.dispatchEvent(new MouseEvent(comp, MouseEvent.MOUSE_CLICKED, now, 0, x, y, 1, false, MouseEvent.BUTTON3));
+    }
+
+    private JPopupMenu findVisiblePopupMenu() {
+        for (Window w : Window.getWindows()) {
+            if (w.isVisible()) {
+                JPopupMenu popup = findPopupIn(w);
+                if (popup != null) {
+                    return popup;
+                }
+            }
+        }
+        return null;
+    }
+
+    private JPopupMenu findPopupIn(Component comp) {
+        if (comp instanceof JPopupMenu popup && popup.isVisible()) {
+            return popup;
+        }
+        if (comp instanceof Container c) {
+            for (Component child : c.getComponents()) {
+                JPopupMenu found = findPopupIn(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private JMenuItem findPopupMenuItem(JPopupMenu popup, String[] path) {
+        for (javax.swing.MenuElement element : popup.getSubElements()) {
+            if (element.getComponent() instanceof JMenuItem item && path[0].equals(item.getText())) {
+                if (path.length == 1) {
+                    return item;
+                }
+                if (item instanceof javax.swing.JMenu subMenu) {
+                    String[] rest = new String[path.length - 1];
+                    System.arraycopy(path, 1, rest, 0, rest.length);
+                    return findMenuItemInMenu(subMenu, rest);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lists currently open dialogs with their index, type, title, message, and buttons.
+     */
+    public List<Map<String, Object>> listDialogs() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        int index = 0;
+        for (Window w : getVisibleWindows()) {
+            if (w instanceof Dialog dialog) {
+                Map<String, Object> info = new LinkedHashMap<>();
+                info.put("index", index);
+                info.put("title", dialog.getTitle());
+                info.put("class", dialog.getClass().getSimpleName());
+                info.put("modal", dialog.isModal());
+                JOptionPane pane = findDescendant(dialog, JOptionPane.class);
+                JFileChooser chooser = findDescendant(dialog, JFileChooser.class);
+                if (pane != null) {
+                    info.put("type", "option");
+                    Object message = pane.getMessage();
+                    info.put("message", message == null ? null : String.valueOf(message));
+                } else if (chooser != null) {
+                    info.put("type", "fileChooser");
+                } else {
+                    info.put("type", "custom");
+                }
+                info.put("buttons", collectButtonTexts(dialog));
+                result.add(info);
+            }
+            index++;
+        }
+        return result;
+    }
+
+    /**
+     * Responds to an open dialog.
+     * Params: button (text of the button to click), filePath (for JFileChooser),
+     * windowIndex (optional index from list_dialogs / list_windows).
+     */
+    public String handleDialog(Map<String, Object> params) {
+        Dialog dialog = resolveDialog(params);
+        String filePath = (String) params.get("filePath");
+        String button = (String) params.get("button");
+
+        JFileChooser chooser = findDescendant(dialog, JFileChooser.class);
+        if (filePath != null && !filePath.isBlank()) {
+            if (chooser == null) {
+                throw new IllegalArgumentException("Dialog does not contain a JFileChooser");
+            }
+            chooser.setSelectedFile(new java.io.File(filePath));
+            chooser.approveSelection();
+            return "File selected: " + filePath;
+        }
+        if (button == null || button.isBlank()) {
+            throw new IllegalArgumentException("Provide either 'button' or 'filePath'");
+        }
+        if (chooser != null && "Cancel".equalsIgnoreCase(button)) {
+            chooser.cancelSelection();
+            return "File chooser cancelled";
+        }
+        AbstractButton target = findButtonByText(dialog, button);
+        if (target == null) {
+            throw new IllegalArgumentException("Button not found in dialog: " + button
+                + ". Available: " + collectButtonTexts(dialog));
+        }
+        target.doClick();
+        return "Dialog button clicked: " + button;
+    }
+
+    private Dialog resolveDialog(Map<String, Object> params) {
+        List<Window> visible = getVisibleWindows();
+        Integer index = params.containsKey("windowIndex") ? getInt(params, "windowIndex", 0) : null;
+        if (index != null) {
+            if (index < 0 || index >= visible.size() || !(visible.get(index) instanceof Dialog d)) {
+                throw new IllegalArgumentException("No dialog at window index " + index);
+            }
+            return d;
+        }
+        for (Window w : visible) {
+            if (w instanceof Dialog d) {
+                return d;
+            }
+        }
+        throw new IllegalStateException("No open dialog found");
+    }
+
+    private <T extends Component> T findDescendant(Component comp, Class<T> type) {
+        if (type.isInstance(comp)) {
+            return type.cast(comp);
+        }
+        if (comp instanceof Container c) {
+            for (Component child : c.getComponents()) {
+                T found = findDescendant(child, type);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> collectButtonTexts(Component comp) {
+        List<String> texts = new ArrayList<>();
+        collectButtons(comp, texts);
+        return texts;
+    }
+
+    private void collectButtons(Component comp, List<String> texts) {
+        if (comp instanceof JButton btn && btn.getText() != null && !btn.getText().isBlank()) {
+            texts.add(btn.getText());
+        }
+        if (comp instanceof Container c) {
+            for (Component child : c.getComponents()) {
+                collectButtons(child, texts);
+            }
+        }
+    }
+
+    private AbstractButton findButtonByText(Component comp, String text) {
+        if (comp instanceof AbstractButton btn && text.equals(btn.getText())) {
+            return btn;
+        }
+        if (comp instanceof Container c) {
+            for (Component child : c.getComponents()) {
+                AbstractButton found = findButtonByText(child, text);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Moves the active (or specified) window to the given screen position.
+     */
+    public String moveWindow(Map<String, Object> params) {
+        Window win = getTargetWindow(params);
+        if (win == null) {
+            throw new IllegalStateException("No active window");
+        }
+        int x = getInt(params, "x", win.getX());
+        int y = getInt(params, "y", win.getY());
+        win.setLocation(x, y);
+        return "Window moved to (" + x + "," + y + ")";
+    }
+
+    /**
+     * Changes the extended state of the active frame (MAXIMIZED, MINIMIZED, NORMAL).
+     */
+    public String setWindowState(Map<String, Object> params) {
+        Window win = getTargetWindow(params);
+        if (win == null) {
+            throw new IllegalStateException("No active window");
+        }
+        if (!(win instanceof Frame frame)) {
+            throw new IllegalArgumentException("Active window is not a Frame: " + win.getClass().getSimpleName());
+        }
+        WindowState state = WindowState.valueOf(getString(params, "state").toUpperCase());
+        int extended = switch (state) {
+            case MAXIMIZED -> Frame.MAXIMIZED_BOTH;
+            case MINIMIZED -> Frame.ICONIFIED;
+            case NORMAL -> Frame.NORMAL;
+        };
+        frame.setExtendedState(extended);
+        return "Window state set to " + state;
+    }
+
+    /**
+     * Reads the system clipboard of the target JVM as text.
+     */
+    public Map<String, Object> getClipboard() throws Exception {
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+            result.put("text", clipboard.getData(DataFlavor.stringFlavor));
+        } else {
+            result.put("text", null);
+        }
+        return result;
+    }
+
+    /**
+     * Writes text to the system clipboard of the target JVM.
+     */
+    public String setClipboard(Map<String, Object> params) {
+        String text = getString(params, "text");
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(new StringSelection(text), null);
+        return "Clipboard set (" + text.length() + " characters)";
+    }
+
+    @FunctionalInterface
+    private interface EdtAction<T> {
+        T run() throws Exception;
+    }
+
+    private <T> T invokeAndWaitQuietly(EdtAction<T> action) throws Exception {
+        if (SwingUtilities.isEventDispatchThread()) {
+            return action.run();
+        }
+        AtomicReference<T> result = new AtomicReference<>();
+        AtomicReference<Exception> error = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                result.set(action.run());
+            } catch (Exception e) {
+                error.set(e);
+            }
+        });
+        if (error.get() != null) {
+            throw error.get();
+        }
+        return result.get();
+    }
+
+    private List<ComponentDescriptor> scanComponent(Component comp, ComponentStateFilter filter) {
         List<ComponentDescriptor> result = new ArrayList<>();
-        String uid = assignUid(comp);
         List<ComponentDescriptor> children = new ArrayList<>();
         if (comp instanceof Container container) {
             for (Component child : container.getComponents()) {
-                children.addAll(scanComponent(child));
+                children.addAll(scanComponent(child, filter));
             }
         }
+        if (!matchesFilter(comp, filter) && children.isEmpty()) {
+            return result;
+        }
+        String uid = assignUid(comp);
         String text = extractText(comp);
         String selectionState = extractSelectionState(comp);
         Rectangle bounds = comp.getBounds();
@@ -460,6 +1011,15 @@ public class ComponentScanner {
         );
         result.add(desc);
         return result;
+    }
+
+    private boolean matchesFilter(Component comp, ComponentStateFilter filter) {
+        return switch (filter) {
+            case ALL -> true;
+            case VISIBLE_ONLY -> comp.isVisible();
+            case ENABLED_ONLY -> comp.isEnabled();
+            case FOCUSABLE_ONLY -> comp.isFocusable();
+        };
     }
 
     private String assignUid(Component comp) {
@@ -700,8 +1260,43 @@ public class ComponentScanner {
                     yield false;
                 }
             }
+            case "COMPONENT_EXISTS" -> {
+                String expected = getString(params, "expectedValue");
+                yield componentMatchingQueryExists(expected);
+            }
+            case "COMPONENT_GONE" -> {
+                String expected = getString(params, "expectedValue");
+                yield !componentMatchingQueryExists(expected);
+            }
+            case "WINDOW_COUNT" -> {
+                int expected = Integer.parseInt(getString(params, "expectedValue"));
+                yield getVisibleWindows().size() == expected;
+            }
+            case "EDT_IDLE" -> {
+                try {
+                    SwingUtilities.invokeAndWait(() -> { });
+                    yield true;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    yield false;
+                } catch (Exception e) {
+                    yield false;
+                }
+            }
             default -> throw new IllegalArgumentException("Unknown condition type: " + condType);
         };
+    }
+
+    private boolean componentMatchingQueryExists(String query) {
+        String lowered = query.toLowerCase();
+        for (Window w : getVisibleWindows()) {
+            List<Map<String, Object>> matches = new ArrayList<>();
+            collectMatches(w, lowered, "ANY", matches);
+            if (!matches.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int getMouseMask(String button) {
