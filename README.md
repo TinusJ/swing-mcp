@@ -21,6 +21,10 @@ MCP client (stdio) ──▶ swing-mcp-server ──localhost socket──▶ sw
 
 See [docs/tools](docs/tools/README.md) for the full tool documentation (per-category pages), or [docs/tool-reference.md](docs/tool-reference.md) for the single-page quick reference.
 
+## Skills
+
+The [skills](skills/README.md) directory contains agent skills (`SKILL.md` files) that teach AI coding agents how to use Swing MCP effectively — core workflows, UI testing patterns, and troubleshooting.
+
 ## Building
 
 Requires JDK 21+ and Maven.
