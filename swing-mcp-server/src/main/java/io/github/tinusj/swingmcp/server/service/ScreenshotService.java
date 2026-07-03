@@ -1,0 +1,73 @@
+package io.github.tinusj.swingmcp.server.service;
+
+import io.github.tinusj.swingmcp.common.enums.CommandType;
+import io.github.tinusj.swingmcp.server.config.SwingMcpProperties;
+import io.github.tinusj.swingmcp.server.domain.AgentCommandException;
+import io.github.tinusj.swingmcp.server.registry.SessionRegistry;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+
+/**
+ * Takes screenshots of the target application's windows or components and
+ * stores them as PNG files in the configured screenshot directory.
+ */
+@Service
+public class ScreenshotService {
+
+    private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS");
+
+    private final SessionRegistry registry;
+    private final SwingMcpProperties properties;
+
+    public ScreenshotService(SessionRegistry registry, SwingMcpProperties properties) {
+        this.registry = registry;
+        this.properties = properties;
+    }
+
+    /**
+     * Takes a screenshot of the active window or a specific component.
+     *
+     * @param uid optional component UID; null for the whole active window
+     * @return map with the saved file path and image dimensions
+     */
+    public Map<String, Object> screenshot(String uid) {
+        Map<String, Object> params = new HashMap<>();
+        if (uid != null && !uid.isBlank()) {
+            params.put("uid", uid);
+        }
+        Object result = registry.require().send(CommandType.TAKE_SCREENSHOT, params);
+        if (!(result instanceof Map<?, ?> map)) {
+            throw new AgentCommandException("Unexpected screenshot result: " + result);
+        }
+        String base64 = String.valueOf(map.get("imageBase64"));
+        byte[] png = Base64.getDecoder().decode(base64);
+        Path file = writePng(png);
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("path", file.toAbsolutePath().toString());
+        out.put("mimeType", map.get("mimeType"));
+        out.put("width", map.get("width"));
+        out.put("height", map.get("height"));
+        return out;
+    }
+
+    private Path writePng(byte[] png) {
+        try {
+            Path dir = Path.of(properties.getScreenshotDir());
+            Files.createDirectories(dir);
+            Path file = dir.resolve("screenshot-" + TS.format(LocalDateTime.now()) + ".png");
+            Files.write(file, png);
+            return file;
+        } catch (IOException e) {
+            throw new AgentCommandException("Failed to write screenshot: " + e.getMessage(), e);
+        }
+    }
+}

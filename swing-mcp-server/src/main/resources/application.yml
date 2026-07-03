@@ -1,0 +1,29 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  ai:
+    mcp:
+      server:
+        name: swing-mcp-server
+        version: 1.0.0
+        stdio: true
+
+swing:
+  mcp:
+    agent-port-min: 40000
+    agent-port-max: 40100
+    agent-jar: ${SWING_MCP_AGENT_JAR:}
+    screenshot-dir: ${java.io.tmpdir}/swing-mcp-screenshots
+    tool-timeout-ms: 30000
+    evaluate:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    io.github.tinusj: DEBUG
+  file:
+    name: ${java.io.tmpdir}/swing-mcp-server.log
+  pattern:
+    console: ""
