@@ -1,6 +1,7 @@
 package io.github.tinusj.swingmcp.server.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,9 +65,15 @@ class ServicesTest {
     void snapshotServiceSendsCommands() {
         SnapshotService service = new SnapshotService(registry);
         assertEquals("TAKE_SNAPSHOT", service.takeSnapshot(null));
+        assertEquals("TAKE_SNAPSHOT", service.takeSnapshot(null, "VISIBLE_ONLY"));
         assertEquals("GET_COMPONENT_DETAILS", service.componentDetails("comp-1"));
-        assertTrue(received.contains(CommandType.TAKE_SNAPSHOT));
-        assertTrue(received.contains(CommandType.GET_COMPONENT_DETAILS));
+        assertEquals("FIND_COMPONENT", service.findComponent("Save", "TEXT"));
+        assertEquals("GET_TABLE_DATA", service.tableData("comp-2", 0, 10));
+        assertEquals("GET_LIST_ITEMS", service.listItems("comp-3", null, null));
+        assertTrue(received.containsAll(java.util.List.of(
+            CommandType.TAKE_SNAPSHOT, CommandType.GET_COMPONENT_DETAILS,
+            CommandType.FIND_COMPONENT, CommandType.GET_TABLE_DATA,
+            CommandType.GET_LIST_ITEMS)));
     }
 
     @Test
@@ -75,10 +82,13 @@ class ServicesTest {
         service.listWindows();
         service.selectWindow(0);
         service.resizeWindow(800, 600);
+        service.moveWindow(100, 50);
+        service.setWindowState("MAXIMIZED");
         service.closeWindow();
         assertTrue(received.containsAll(java.util.List.of(
             CommandType.LIST_WINDOWS, CommandType.SELECT_WINDOW,
-            CommandType.RESIZE_WINDOW, CommandType.CLOSE_WINDOW)));
+            CommandType.RESIZE_WINDOW, CommandType.MOVE_WINDOW,
+            CommandType.SET_WINDOW_STATE, CommandType.CLOSE_WINDOW)));
     }
 
     @Test
@@ -93,7 +103,33 @@ class ServicesTest {
         service.pressKey("ENTER");
         service.drag("comp-6", "comp-7");
         service.scroll("comp-8", "DOWN", 3);
-        assertEquals(9, received.size());
+        service.hover("comp-9");
+        service.focus("comp-10");
+        service.typeText("hello", "comp-10");
+        service.selectContextMenuItem("comp-11", "Copy");
+        assertEquals(13, received.size());
+        assertTrue(received.containsAll(java.util.List.of(
+            CommandType.HOVER, CommandType.FOCUS,
+            CommandType.TYPE_TEXT, CommandType.SELECT_CONTEXT_MENU_ITEM)));
+    }
+
+    @Test
+    void dialogServiceSendsCommands() {
+        DialogService service = new DialogService(registry);
+        service.listDialogs();
+        service.handleDialog("OK", null, null);
+        service.handleDialog(null, "/tmp/file.txt", 1);
+        assertTrue(received.containsAll(java.util.List.of(
+            CommandType.LIST_DIALOGS, CommandType.HANDLE_DIALOG)));
+    }
+
+    @Test
+    void clipboardServiceSendsCommands() {
+        ClipboardService service = new ClipboardService(registry);
+        service.getClipboard();
+        service.setClipboard("hello");
+        assertTrue(received.containsAll(java.util.List.of(
+            CommandType.GET_CLIPBOARD, CommandType.SET_CLIPBOARD)));
     }
 
     @Test
@@ -126,6 +162,15 @@ class ServicesTest {
         assertTrue(Files.isRegularFile(path));
         assertTrue(Files.size(path) > 0);
         assertEquals("image/png", result.get("mimeType"));
+        assertFalse(result.containsKey("imageBase64"));
+    }
+
+    @Test
+    void screenshotServiceReturnsInlineImageWhenRequested() {
+        ScreenshotService service = new ScreenshotService(registry, properties);
+        Map<String, Object> result = service.screenshot(null, true);
+        assertTrue(result.containsKey("imageBase64"));
+        assertTrue(String.valueOf(result.get("imageBase64")).length() > 0);
     }
 
     private static Map<String, Object> screenshotPayload() {

@@ -17,10 +17,12 @@ may be stale.
 
 | Category | Documentation | Tools |
 |---|---|---|
-| Application lifecycle | [application.md](application.md) | `launch_app`, `attach_to_app`, `stop_app`, `app_status` |
-| Inspection | [inspection.md](inspection.md) | `take_snapshot`, `get_component_details` |
-| Windows | [windows.md](windows.md) | `list_windows`, `select_window`, `resize_window`, `close_window` |
-| Interaction | [interaction.md](interaction.md) | `click`, `fill`, `select_option`, `select_tree_node`, `select_table_cell`, `select_menu_item`, `press_key`, `drag`, `scroll` |
+| Application lifecycle | [application.md](application.md) | `launch_app`, `attach_to_app`, `stop_app`, `app_status`, `list_sessions`, `select_session` |
+| Inspection | [inspection.md](inspection.md) | `take_snapshot`, `get_component_details`, `find_component`, `get_table_data`, `get_list_items` |
+| Windows | [windows.md](windows.md) | `list_windows`, `select_window`, `resize_window`, `move_window`, `maximize_window`, `minimize_window`, `restore_window`, `close_window` |
+| Interaction | [interaction.md](interaction.md) | `click`, `hover`, `focus`, `type_text`, `fill`, `select_option`, `select_tree_node`, `select_table_cell`, `select_menu_item`, `select_context_menu_item`, `press_key`, `drag`, `scroll` |
+| Dialogs | [dialogs.md](dialogs.md) | `list_dialogs`, `handle_dialog` |
+| Clipboard | [clipboard.md](clipboard.md) | `get_clipboard`, `set_clipboard` |
 | Screenshots | [screenshots.md](screenshots.md) | `take_screenshot` |
 | Utilities | [utilities.md](utilities.md) | `wait_for`, `evaluate_java` |
 
@@ -32,18 +34,35 @@ may be stale.
 | `attach_to_app` | ✅ Implemented |
 | `stop_app` | ✅ Implemented |
 | `app_status` | ✅ Implemented |
+| `list_sessions` | ✅ Implemented |
+| `select_session` | ✅ Implemented |
 | `take_snapshot` | ✅ Implemented |
 | `get_component_details` | ✅ Implemented |
+| `find_component` | ✅ Implemented |
+| `get_table_data` | ✅ Implemented |
+| `get_list_items` | ✅ Implemented |
 | `list_windows` | ✅ Implemented |
 | `select_window` | ✅ Implemented |
 | `resize_window` | ✅ Implemented |
+| `move_window` | ✅ Implemented |
+| `maximize_window` | ✅ Implemented |
+| `minimize_window` | ✅ Implemented |
+| `restore_window` | ✅ Implemented |
 | `close_window` | ✅ Implemented |
 | `click` | ✅ Implemented |
+| `hover` | ✅ Implemented |
+| `focus` | ✅ Implemented |
+| `type_text` | ✅ Implemented |
 | `fill` | ✅ Implemented |
 | `select_option` | ✅ Implemented |
 | `select_tree_node` | ✅ Implemented |
 | `select_table_cell` | ✅ Implemented |
 | `select_menu_item` | ✅ Implemented |
+| `select_context_menu_item` | ✅ Implemented |
+| `list_dialogs` | ✅ Implemented |
+| `handle_dialog` | ✅ Implemented |
+| `get_clipboard` | ✅ Implemented |
+| `set_clipboard` | ✅ Implemented |
 | `press_key` | ✅ Implemented |
 | `drag` | ✅ Implemented |
 | `scroll` | ✅ Implemented |
@@ -51,8 +70,8 @@ may be stale.
 | `wait_for` | ✅ Implemented |
 | `evaluate_java` | ✅ Implemented (disabled by default) |
 
-For tools and capabilities that are planned but **not yet implemented**, see the
-[roadmap](roadmap.md).
+All previously planned capabilities have been implemented — see the
+[roadmap](roadmap.md) for the mapping.
 
 ## Typical workflow
 

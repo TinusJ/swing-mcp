@@ -31,6 +31,27 @@ Resize the active window.
 
 **Notes:** omitted dimensions keep their current value.
 
+## `move_window`
+
+Move the active window to a screen position.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `x` | number | no | New x position in pixels |
+| `y` | number | no | New y position in pixels |
+
+**Notes:** omitted coordinates keep their current value.
+
+## `maximize_window` / `minimize_window` / `restore_window`
+
+Change the extended state of the active frame window: maximize it, minimize
+(iconify) it, or restore it to its normal state.
+
+No parameters.
+
+**Notes:** the active window must be a `Frame` (e.g. a `JFrame`); dialogs do
+not support extended states.
+
 ## `close_window`
 
 Close the active window by dispatching a window-closing event (equivalent to
