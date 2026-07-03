@@ -50,7 +50,7 @@ public class InteractionService {
         return registry.require().send(CommandType.SELECT_OPTION, params);
     }
 
-    /** Selects a tree node by path, e.g. "Root &gt; Folder &gt; Leaf". */
+    /** Selects a tree node by path, e.g. "Root > Folder > Leaf". */
     public Object selectTreeNode(String uid, String path) {
         return registry.require().send(CommandType.SELECT_TREE_NODE, Map.of("uid", uid, "path", path));
     }
@@ -60,7 +60,7 @@ public class InteractionService {
         return registry.require().send(CommandType.SELECT_TABLE_CELL, Map.of("uid", uid, "row", row, "col", col));
     }
 
-    /** Selects a menu item by path, e.g. "File &gt; Save". */
+    /** Selects a menu item by path, e.g. "File > Save". */
     public Object selectMenuItem(String path) {
         return registry.require().send(CommandType.SELECT_MENU_ITEM, Map.of("path", path));
     }
