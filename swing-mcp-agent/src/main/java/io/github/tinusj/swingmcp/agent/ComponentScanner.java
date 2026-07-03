@@ -637,6 +637,8 @@ public class ComponentScanner {
     }
 
     private void typeChar(Robot robot, char ch) {
+        // Shift detection assumes a US keyboard layout; other layouts may
+        // require different modifier combinations for these characters.
         boolean upper = Character.isUpperCase(ch) || "~!@#$%^&*()_+{}|:\"<>?".indexOf(ch) >= 0;
         int code = KeyEvent.getExtendedKeyCodeForChar(ch);
         if (code == KeyEvent.VK_UNDEFINED) {
@@ -676,9 +678,17 @@ public class ComponentScanner {
             }
             return null;
         });
-        // Give the popup a moment to appear when triggered via mouse events.
+        // Poll briefly for the popup to appear when triggered via mouse events.
         if (popupRef.get() == null) {
-            Thread.sleep(250);
+            long deadline = System.currentTimeMillis() + 1000;
+            while (System.currentTimeMillis() < deadline) {
+                boolean visible = Boolean.TRUE.equals(
+                    invokeAndWaitQuietly(() -> findVisiblePopupMenu() != null));
+                if (visible) {
+                    break;
+                }
+                Thread.sleep(50);
+            }
         }
         try {
             return invokeAndWaitQuietly(() -> {

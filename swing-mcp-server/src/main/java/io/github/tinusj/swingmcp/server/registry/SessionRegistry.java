@@ -97,9 +97,12 @@ public class SessionRegistry {
      * @return the id the session was registered under
      */
     public String register(String sessionId, AppSession session) {
-        String id = (sessionId == null || sessionId.isBlank())
-            ? "session-" + idCounter.incrementAndGet()
-            : sessionId;
+        String id = sessionId;
+        if (id == null || id.isBlank()) {
+            do {
+                id = "session-" + idCounter.incrementAndGet();
+            } while (sessions.containsKey(id));
+        }
         AppSession previous = sessions.put(id, session);
         closeQuietly(previous);
         activeId.set(id);
