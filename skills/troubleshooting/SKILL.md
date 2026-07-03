@@ -36,7 +36,7 @@ The server requires **JDK 21+**. Some GUI clients don't inherit the shell `PATH`
 The server needs the agent jar to preload (`launch_app`) or dynamically attach (`attach_to_app`) it.
 
 1. Check that `SWING_MCP_AGENT_JAR` (or the `swing.mcp.agent-jar` property) is set in the MCP server configuration's `env` block.
-2. Confirm the path is **absolute** and the file exists (e.g. `swing-mcp-agent/target/swing-mcp-agent-1.0.0-SNAPSHOT.jar` after `mvn verify`).
+2. Confirm the path is **absolute** and the file exists (e.g. `/path/to/swing-mcp/swing-mcp-agent/target/swing-mcp-agent-1.0.0-SNAPSHOT.jar` after `mvn verify`).
 3. Ask the user to restart the MCP server (or their AI client) after fixing the configuration.
 
 #### Symptom: `attach_to_app` fails against a running JVM
