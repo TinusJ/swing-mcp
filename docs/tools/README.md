@@ -5,6 +5,10 @@ Each tool call is translated into a JSON line command, forwarded over a
 localhost-only socket to the agent inside the target JVM, and executed on the
 Swing Event Dispatch Thread (EDT).
 
+For instructions on registering the server with your MCP client (IntelliJ
+IDEA, VS Code, Claude Desktop, Claude Code, Cursor, Windsurf), see the
+[installation guide](../installation.md).
+
 Component `uid` values (e.g. `comp-42`) come from `take_snapshot`. Take a fresh
 snapshot after any action that changes the UI, as UIDs from an older snapshot
 may be stale.
