@@ -95,7 +95,17 @@ public class AgentServer {
         }
     }
 
+    /**
+     * Reads command lines and dispatches each one to its own virtual thread,
+     * writing responses (which carry the request id) as they complete. This
+     * keeps the agent responsive even while an action command is blocked by a
+     * modal dialog: {@code list_dialogs} / {@code handle_dialog} still work.
+     * Responses may be written out of order; the server correlates them by
+     * request id.
+     */
     private void handleClient(Socket client) {
+        ExecutorService commandExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        Object writeLock = new Object();
         try (
             BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
             PrintWriter writer = new PrintWriter(client.getOutputStream(), true)
@@ -103,11 +113,18 @@ public class AgentServer {
             CommandHandler handler = new CommandHandler(codec);
             String line;
             while ((line = reader.readLine()) != null) {
-                String response = handler.handle(line);
-                writer.println(response);
+                String command = line;
+                commandExecutor.submit(() -> {
+                    String response = handler.handle(command);
+                    synchronized (writeLock) {
+                        writer.println(response);
+                    }
+                });
             }
         } catch (IOException e) {
             LOG.log(Level.FINE, "Client disconnected", e);
+        } finally {
+            commandExecutor.shutdown();
         }
     }
 }

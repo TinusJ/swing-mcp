@@ -19,11 +19,5 @@ swing:
     evaluate:
       enabled: false
 
-logging:
-  level:
-    root: INFO
-    io.github.tinusj: DEBUG
-  file:
-    name: ${java.io.tmpdir}/swing-mcp-server.log
-  pattern:
-    console: ""
+# Logging is configured in logback-spring.xml (file only - stdout carries the
+# MCP stdio protocol and must stay clean).

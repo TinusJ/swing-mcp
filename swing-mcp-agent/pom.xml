@@ -29,6 +29,11 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -69,6 +74,16 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Agent-Class>io.github.tinusj.swingmcp.agent.SwingMcpAgent</Agent-Class>
+                                        <Premain-Class>io.github.tinusj.swingmcp.agent.SwingMcpAgent</Premain-Class>
+                                        <Can-Retransform-Classes>false</Can-Retransform-Classes>
+                                        <Can-Redefine-Classes>false</Can-Redefine-Classes>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>

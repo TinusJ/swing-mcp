@@ -11,25 +11,39 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.Function;
 
 /**
  * Test double that speaks the agent's JSON line protocol on a loopback socket.
+ * A handler may return zero, one, or several responses per request, which
+ * allows tests to simulate dropped, stale, and out-of-order responses.
  */
 public class FakeAgentServer implements AutoCloseable {
 
     private final ServerSocket serverSocket;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Function<CommandRequest, CommandResponse> handler;
+    private final Function<CommandRequest, List<CommandResponse>> handler;
     private final Thread acceptThread;
     private volatile boolean running = true;
 
     public FakeAgentServer(Function<CommandRequest, CommandResponse> handler) throws IOException {
-        this.handler = handler;
+        this(req -> List.of(handler.apply(req)), (Void) null);
+    }
+
+    private FakeAgentServer(Function<CommandRequest, List<CommandResponse>> multiHandler, Void marker)
+            throws IOException {
+        this.handler = multiHandler;
         this.serverSocket = new ServerSocket(0, 5, InetAddress.getLoopbackAddress());
         this.acceptThread = new Thread(this::acceptLoop, "fake-agent-server");
         this.acceptThread.setDaemon(true);
         this.acceptThread.start();
+    }
+
+    /** Creates a server whose handler may emit any number of responses per request. */
+    public static FakeAgentServer multiResponding(Function<CommandRequest, List<CommandResponse>> handler)
+            throws IOException {
+        return new FakeAgentServer(handler, (Void) null);
     }
 
     /** Creates a server that echoes success with the request type name as result. */
@@ -51,7 +65,9 @@ public class FakeAgentServer implements AutoCloseable {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     CommandRequest request = mapper.readValue(line, CommandRequest.class);
-                    writer.println(mapper.writeValueAsString(handler.apply(request)));
+                    for (CommandResponse response : handler.apply(request)) {
+                        writer.println(mapper.writeValueAsString(response));
+                    }
                 }
             } catch (IOException e) {
                 if (running) {

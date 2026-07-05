@@ -52,6 +52,7 @@ import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import javax.swing.tree.TreePath;
@@ -342,11 +343,28 @@ public class ComponentScanner {
             throw new IllegalStateException("No active window");
         }
         String[] parts = pathStr.split("\\s*>\\s*");
-        JMenuItem item = findMenuItem(win, parts);
+        // Collect the menus whose popups get realized during lookup so they can
+        // be hidden again afterwards (Issue #2: setPopupMenuVisible(true) in
+        // findMenuItemInMenu otherwise leaks a lightweight popup into the
+        // JLayeredPane that keeps reporting visible=true).
+        List<javax.swing.JMenu> openedMenus = new ArrayList<>();
+        JMenuItem item = findMenuItem(win, parts, openedMenus);
         if (item == null) {
+            hideMenus(openedMenus, win);
             throw new IllegalArgumentException("Menu item not found: " + pathStr);
         }
-        item.doClick();
+        // Hide the realized popups and clear the selection path BEFORE the
+        // click, so nothing leaks on screen or in the tree even while a modal
+        // dialog opened by the action is blocking (Issue #1 Defect C, Issue #2).
+        // Repeat in the finally as defense in case the action re-opened a menu.
+        hideMenus(openedMenus, win);
+        MenuSelectionManager.defaultManager().clearSelectedPath();
+        try {
+            item.doClick();
+        } finally {
+            hideMenus(openedMenus, win);
+            MenuSelectionManager.defaultManager().clearSelectedPath();
+        }
         return "Menu item clicked: " + pathStr;
     }
 
@@ -690,13 +708,14 @@ public class ComponentScanner {
                 Thread.sleep(50);
             }
         }
+        List<javax.swing.JMenu> openedSubmenus = new ArrayList<>();
         try {
             return invokeAndWaitQuietly(() -> {
                 JPopupMenu popup = popupRef.get() != null ? popupRef.get() : findVisiblePopupMenu();
                 if (popup == null) {
                     throw new IllegalStateException("No context menu appeared for: " + uid);
                 }
-                JMenuItem item = findPopupMenuItem(popup, parts);
+                JMenuItem item = findPopupMenuItem(popup, parts, openedSubmenus);
                 if (item == null) {
                     popup.setVisible(false);
                     throw new IllegalArgumentException("Context menu item not found: " + pathStr);
@@ -706,10 +725,15 @@ public class ComponentScanner {
             });
         } finally {
             invokeAndWaitQuietly(() -> {
+                // Hide any submenu popups realized during lookup (Issue #2).
+                for (int i = openedSubmenus.size() - 1; i >= 0; i--) {
+                    openedSubmenus.get(i).setPopupMenuVisible(false);
+                }
                 JPopupMenu popup = popupRef.get() != null ? popupRef.get() : findVisiblePopupMenu();
                 if (popup != null && popup.isVisible()) {
                     popup.setVisible(false);
                 }
+                sweepStalePopups(SwingUtilities.getWindowAncestor(comp));
                 return null;
             });
         }
@@ -762,7 +786,7 @@ public class ComponentScanner {
         return null;
     }
 
-    private JMenuItem findPopupMenuItem(JPopupMenu popup, String[] path) {
+    private JMenuItem findPopupMenuItem(JPopupMenu popup, String[] path, List<javax.swing.JMenu> openedMenus) {
         for (javax.swing.MenuElement element : popup.getSubElements()) {
             if (element.getComponent() instanceof JMenuItem item && path[0].equals(item.getText())) {
                 if (path.length == 1) {
@@ -771,7 +795,7 @@ public class ComponentScanner {
                 if (item instanceof javax.swing.JMenu subMenu) {
                     String[] rest = new String[path.length - 1];
                     System.arraycopy(path, 1, rest, 0, rest.length);
-                    return findMenuItemInMenu(subMenu, rest);
+                    return findMenuItemInMenu(subMenu, rest, openedMenus);
                 }
             }
         }
@@ -1026,10 +1050,23 @@ public class ComponentScanner {
     private boolean matchesFilter(Component comp, ComponentStateFilter filter) {
         return switch (filter) {
             case ALL -> true;
-            case VISIBLE_ONLY -> comp.isVisible();
+            case VISIBLE_ONLY -> isEffectivelyVisible(comp);
             case ENABLED_ONLY -> comp.isEnabled();
             case FOCUSABLE_ONLY -> comp.isFocusable();
         };
+    }
+
+    /**
+     * Visibility for snapshot filtering. A {@link JPopupMenu} conventionally
+     * reports {@code isVisible()==true} only while showing, but a popup that was
+     * cancelled without being properly hidden can lie; use {@code isShowing()}
+     * for popups so stale, non-painted popups are excluded (Issue #2).
+     */
+    private boolean isEffectivelyVisible(Component comp) {
+        if (comp instanceof JPopupMenu popup) {
+            return popup.isShowing();
+        }
+        return comp.isVisible();
     }
 
     private String assignUid(Component comp) {
@@ -1156,7 +1193,7 @@ public class ComponentScanner {
         return null;
     }
 
-    private JMenuItem findMenuItem(Component comp, String[] path) {
+    private JMenuItem findMenuItem(Component comp, String[] path, List<javax.swing.JMenu> openedMenus) {
         if (path.length == 0) {
             return null;
         }
@@ -1169,7 +1206,7 @@ public class ComponentScanner {
                     }
                     String[] rest = new String[path.length - 1];
                     System.arraycopy(path, 1, rest, 0, rest.length);
-                    JMenuItem found = findMenuItemInMenu(menu, rest);
+                    JMenuItem found = findMenuItemInMenu(menu, rest, openedMenus);
                     if (found != null) {
                         return found;
                     }
@@ -1178,7 +1215,7 @@ public class ComponentScanner {
         }
         if (comp instanceof Container c) {
             for (Component child : c.getComponents()) {
-                JMenuItem found = findMenuItem(child, path);
+                JMenuItem found = findMenuItem(child, path, openedMenus);
                 if (found != null) {
                     return found;
                 }
@@ -1187,8 +1224,9 @@ public class ComponentScanner {
         return null;
     }
 
-    private JMenuItem findMenuItemInMenu(javax.swing.JMenu menu, String[] path) {
+    private JMenuItem findMenuItemInMenu(javax.swing.JMenu menu, String[] path, List<javax.swing.JMenu> openedMenus) {
         menu.setPopupMenuVisible(true);
+        openedMenus.add(menu);
         for (int i = 0; i < menu.getItemCount(); i++) {
             JMenuItem item = menu.getItem(i);
             if (item == null) {
@@ -1201,11 +1239,55 @@ public class ComponentScanner {
                 if (item instanceof javax.swing.JMenu subMenu) {
                     String[] rest = new String[path.length - 1];
                     System.arraycopy(path, 1, rest, 0, rest.length);
-                    return findMenuItemInMenu(subMenu, rest);
+                    return findMenuItemInMenu(subMenu, rest, openedMenus);
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Hides the popups realized while locating a menu item and sweeps the
+     * window's layered pane for any leftover non-showing popup wrappers, so no
+     * stale {@code JPopupMenu} lingers in the component tree (Issue #2).
+     */
+    private void hideMenus(List<javax.swing.JMenu> openedMenus, Window win) {
+        // Hide in reverse order (deepest submenu first).
+        for (int i = openedMenus.size() - 1; i >= 0; i--) {
+            javax.swing.JMenu menu = openedMenus.get(i);
+            menu.setPopupMenuVisible(false);
+            JPopupMenu popup = menu.getPopupMenu();
+            if (popup != null) {
+                popup.setVisible(false);
+            }
+        }
+        sweepStalePopups(win);
+    }
+
+    /**
+     * Defensively removes wrapper containers holding a non-showing
+     * {@link JPopupMenu} from the window's {@link javax.swing.JLayeredPane}.
+     */
+    private void sweepStalePopups(Window win) {
+        if (!(win instanceof javax.swing.RootPaneContainer rpc)) {
+            return;
+        }
+        javax.swing.JLayeredPane layeredPane = rpc.getLayeredPane();
+        if (layeredPane == null) {
+            return;
+        }
+        boolean removedAny = false;
+        for (Component child : layeredPane.getComponents()) {
+            JPopupMenu popup = child instanceof JPopupMenu p ? p : findDescendant(child, JPopupMenu.class);
+            if (popup != null && !popup.isShowing()) {
+                layeredPane.remove(child);
+                removedAny = true;
+            }
+        }
+        if (removedAny) {
+            layeredPane.revalidate();
+            layeredPane.repaint();
+        }
     }
 
     private TreePath findTreePath(JTree tree, String[] parts) {

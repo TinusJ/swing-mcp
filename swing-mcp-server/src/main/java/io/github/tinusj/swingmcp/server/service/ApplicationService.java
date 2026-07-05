@@ -78,11 +78,12 @@ public class ApplicationService {
             if (workingDir != null && !workingDir.isBlank()) {
                 pb.directory(Path.of(workingDir).toFile());
             }
+            Path outputLog = Files.createTempFile("swing-mcp-app", ".log");
             pb.redirectErrorStream(true);
-            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectOutput(outputLog.toFile());
             Process process = pb.start();
 
-            int port = awaitPortFile(portFile, process);
+            int port = awaitPortFile(portFile, process, outputLog);
             AgentConnection connection = AgentConnection.connect(port, properties.getToolTimeoutMs());
             AppSession session = new LaunchedAppSession(process, connection, port, "Launched: " + command);
             String id = registry.register(sessionId, session);
@@ -122,7 +123,7 @@ public class ApplicationService {
                 + ",responseFile=" + portFile.toAbsolutePath();
             loadAgent(pid, agentJar, agentArgs);
 
-            int port = awaitPortFile(portFile, null);
+            int port = awaitPortFile(portFile, null, null);
             AgentConnection connection = AgentConnection.connect(port, properties.getToolTimeoutMs());
             AppSession session = new AttachedAppSession(pid, connection, port);
             String id = registry.register(sessionId, session);
@@ -237,11 +238,12 @@ public class ApplicationService {
         }
     }
 
-    private int awaitPortFile(Path portFile, Process process) throws IOException {
+    private int awaitPortFile(Path portFile, Process process, Path outputLog) throws IOException {
         long deadline = System.currentTimeMillis() + PORT_FILE_TIMEOUT_MS;
         while (System.currentTimeMillis() < deadline) {
             if (process != null && !process.isAlive()) {
-                throw new IOException("Target process exited before agent started (exit=" + process.exitValue() + ")");
+                throw new IOException("Target process exited before agent started (exit=" + process.exitValue() + ")"
+                    + outputTail(outputLog));
             }
             if (Files.isRegularFile(portFile)) {
                 String content = Files.readString(portFile).trim();
@@ -258,5 +260,22 @@ public class ApplicationService {
             }
         }
         throw new IOException("Timed out waiting for agent port file: " + portFile);
+    }
+
+    /** Returns the last lines of the launched process output, for error messages. */
+    private String outputTail(Path outputLog) {
+        if (outputLog == null) {
+            return "";
+        }
+        try {
+            List<String> lines = Files.readAllLines(outputLog);
+            if (lines.isEmpty()) {
+                return "";
+            }
+            List<String> tail = lines.subList(Math.max(0, lines.size() - 10), lines.size());
+            return ". Process output (last " + tail.size() + " lines): " + String.join(" | ", tail);
+        } catch (IOException e) {
+            return "";
+        }
     }
 }
