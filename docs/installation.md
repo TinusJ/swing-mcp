@@ -15,12 +15,12 @@ Windsurf, …).
 
    This produces:
 
-   - `swing-mcp-server/target/swing-mcp-server-1.0.0-SNAPSHOT.jar` — the MCP server (stdio transport)
-   - `swing-mcp-agent/target/swing-mcp-agent-1.0.0-SNAPSHOT.jar` — the Java agent injected into the target Swing JVM
+   - `swing-mcp-server/target/swing-mcp-server-1.0.0.jar` — the MCP server (stdio transport)
+   - `swing-mcp-agent/target/swing-mcp-agent-1.0.0.jar` — the Java agent injected into the target Swing JVM
 
 In all examples below, replace `/path/to/…` with the absolute paths to these
 two jars on your machine. On Windows, use paths like
-`C:\\path\\to\\swing-mcp-server-1.0.0-SNAPSHOT.jar` (escaped backslashes in JSON).
+`C:\\path\\to\\swing-mcp-server-1.0.0.jar` (escaped backslashes in JSON).
 
 ## Common configuration
 
@@ -29,8 +29,8 @@ Every client uses the same underlying command:
 | Setting | Value |
 |---|---|
 | Command | `java` |
-| Arguments | `-jar /path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar` |
-| Environment | `SWING_MCP_AGENT_JAR=/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar` |
+| Arguments | `-jar /path/to/swing-mcp-server-1.0.0.jar` |
+| Environment | `SWING_MCP_AGENT_JAR=/path/to/swing-mcp-agent-1.0.0.jar` |
 
 The `SWING_MCP_AGENT_JAR` environment variable tells the server where to find
 the agent jar so it can preload it (`launch_app`) or attach it dynamically
@@ -47,9 +47,9 @@ command/args fields via the UI or paste a JSON configuration ("As JSON"):
   "servers": {
     "swing": {
       "command": "java",
-      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"],
+      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0.jar"],
       "env": {
-        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0.jar"
       }
     }
   }
@@ -70,9 +70,9 @@ Add the server to your workspace's `.vscode/mcp.json` (or via
     "swing": {
       "type": "stdio",
       "command": "java",
-      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"],
+      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0.jar"],
       "env": {
-        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0.jar"
       }
     }
   }
@@ -94,9 +94,9 @@ Edit the Claude Desktop configuration file:
   "mcpServers": {
     "swing": {
       "command": "java",
-      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"],
+      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0.jar"],
       "env": {
-        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0.jar"
       }
     }
   }
@@ -109,8 +109,8 @@ Restart Claude Desktop after saving.
 
 ```bash
 claude mcp add swing \
-  --env SWING_MCP_AGENT_JAR=/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar \
-  -- java -jar /path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar
+  --env SWING_MCP_AGENT_JAR=/path/to/swing-mcp-agent-1.0.0.jar \
+  -- java -jar /path/to/swing-mcp-server-1.0.0.jar
 ```
 
 ## Cursor
@@ -123,9 +123,9 @@ project (or via **Settings → MCP → Add new MCP server**):
   "mcpServers": {
     "swing": {
       "command": "java",
-      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"],
+      "args": ["-jar", "/path/to/swing-mcp-server-1.0.0.jar"],
       "env": {
-        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0.jar"
       }
     }
   }
@@ -160,10 +160,10 @@ Example enabling `evaluate_java` and a custom screenshot directory:
       "args": [
         "-Dswing.mcp.evaluate.enabled=true",
         "-Dswing.mcp.screenshot-dir=/tmp/screens",
-        "-jar", "/path/to/swing-mcp-server-1.0.0-SNAPSHOT.jar"
+        "-jar", "/path/to/swing-mcp-server-1.0.0.jar"
       ],
       "env": {
-        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0-SNAPSHOT.jar"
+        "SWING_MCP_AGENT_JAR": "/path/to/swing-mcp-agent-1.0.0.jar"
       }
     }
   }
@@ -175,7 +175,7 @@ Example enabling `evaluate_java` and a custom screenshot directory:
 1. Ask your client to list its MCP tools — you should see `launch_app`,
    `take_snapshot`, `click`, etc.
 2. Try the demo app:
-   - `launch_app` with command `java -jar /path/to/swing-mcp-demo-1.0.0-SNAPSHOT.jar`
+   - `launch_app` with command `java -jar /path/to/swing-mcp-demo-1.0.0.jar`
    - `take_snapshot` to discover component UIDs
    - `click` / `fill` to interact
 
