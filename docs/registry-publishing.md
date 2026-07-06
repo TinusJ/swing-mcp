@@ -29,7 +29,7 @@ GitHub releases — see the
 
 ## Overview
 
-The MCP Registry (https://registry.modelcontextprotocol.io) hosts **metadata only** — it never
+The MCP Registry (<https://registry.modelcontextprotocol.io>) hosts **metadata only** — it never
 stores artifacts. Creating a GitHub release does **not** automatically add a server to the
 registry; you must explicitly publish a `server.json` using the `mcp-publisher` CLI.
 
@@ -264,7 +264,7 @@ git push
 .\mcp-publisher.exe login github
 ```
 
-Visit https://github.com/login/device, enter the code shown, and authorise while logged in as
+Visit https://github.com/login/device, enter the code shown, and authorize while logged in as
 **TinusJ**.
 
 > Registry JWTs are short-lived. Log in immediately before publishing — see
