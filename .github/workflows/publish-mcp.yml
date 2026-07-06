@@ -1,0 +1,75 @@
+name: Publish to MCP Registry
+
+# Builds the .mcpb bundle, attaches it to the GitHub release, and publishes
+# the server metadata to the MCP Registry (https://registry.modelcontextprotocol.io).
+# Triggered by publishing a GitHub release with a tag like v1.0.0.
+# See docs/registry-publishing.md for details.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # upload the .mcpb asset to the release
+  id-token: write # GitHub OIDC authentication with the MCP Registry
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Determine version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build jars
+        run: mvn -B -DskipTests package
+
+      - name: Assemble .mcpb bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p bundle/server
+          jq --arg v "$VERSION" '.version = $v' mcpb/manifest.json > bundle/manifest.json
+          cp swing-mcp-server/target/swing-mcp-server-*.jar bundle/server/swing-mcp-server.jar
+          cp swing-mcp-agent/target/swing-mcp-agent-*.jar bundle/server/swing-mcp-agent.jar
+          (cd bundle && zip -r ../swing-mcp.mcpb .)
+
+      - name: Upload .mcpb to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" swing-mcp.mcpb --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Update server.json for this release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          SHA256=$(sha256sum swing-mcp.mcpb | cut -d' ' -f1)
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/swing-mcp.mcpb"
+          jq --arg v "$VERSION" --arg sha "$SHA256" --arg url "$URL" \
+            '.version = $v
+             | .packages[0].version = $v
+             | .packages[0].identifier = $url
+             | .packages[0].fileSha256 = $sha' \
+            server.json > server.json.tmp && mv server.json.tmp server.json
+          cat server.json
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+
+      - name: Authenticate with the MCP Registry (GitHub OIDC)
+        run: mcp-publisher login github-oidc
+
+      - name: Publish to the MCP Registry
+        run: mcp-publisher publish
