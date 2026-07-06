@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.TinusJ/swing-mcp",
-  "description": "MCP server for inspecting and automating Java Swing applications.",
+  "title": "Swing MCP",
+  "description": "MCP server for automating Java Swing applications: launch or attach to a Swing JVM, snapshot the UI, and click, fill, and inspect components.",
   "repository": {
     "url": "https://github.com/TinusJ/swing-mcp",
     "source": "github"
