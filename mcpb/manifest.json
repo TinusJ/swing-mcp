@@ -1,0 +1,78 @@
+{
+  "manifest_version": "0.3",
+  "name": "swing-mcp",
+  "display_name": "Swing MCP",
+  "version": "1.0.0",
+  "description": "MCP server for automating Java Swing applications.",
+  "long_description": "Swing MCP lets AI agents drive any Java Swing application. Launch a JVM with the bundled agent preloaded (or attach to a running JVM by PID), take accessibility-style snapshots of the component tree, and interact via tools such as click, fill, select_option, press_key, and take_screenshot. Requires a Java 21+ runtime on the PATH.",
+  "author": {
+    "name": "TinusJ",
+    "url": "https://github.com/TinusJ"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TinusJ/swing-mcp.git"
+  },
+  "homepage": "https://github.com/TinusJ/swing-mcp",
+  "documentation": "https://github.com/TinusJ/swing-mcp/blob/main/docs/tool-reference.md",
+  "support": "https://github.com/TinusJ/swing-mcp/issues",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/swing-mcp-server.jar",
+    "mcp_config": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "${__dirname}/server/swing-mcp-server.jar"
+      ],
+      "env": {
+        "SWING_MCP_AGENT_JAR": "${__dirname}/server/swing-mcp-agent.jar"
+      }
+    }
+  },
+  "tools": [
+    { "name": "launch_app", "description": "Launch a Swing application JVM with the automation agent preloaded" },
+    { "name": "attach_to_app", "description": "Attach the automation agent to a running Swing JVM by PID" },
+    { "name": "stop_app", "description": "Stop the current application session" },
+    { "name": "list_sessions", "description": "List active application sessions" },
+    { "name": "select_session", "description": "Switch the active application session" },
+    { "name": "app_status", "description": "Report the status of the current session" },
+    { "name": "take_snapshot", "description": "Snapshot the Swing component tree with component UIDs" },
+    { "name": "get_component_details", "description": "Get detailed properties of a component by UID" },
+    { "name": "find_component", "description": "Find components by text, name, tooltip, or class" },
+    { "name": "get_table_data", "description": "Read the contents of a JTable" },
+    { "name": "get_list_items", "description": "Read the items of a JList or JTree" },
+    { "name": "list_windows", "description": "List open windows" },
+    { "name": "select_window", "description": "Bring a window to the front" },
+    { "name": "resize_window", "description": "Resize a window" },
+    { "name": "move_window", "description": "Move a window" },
+    { "name": "maximize_window", "description": "Maximize a window" },
+    { "name": "minimize_window", "description": "Minimize a window" },
+    { "name": "restore_window", "description": "Restore a window" },
+    { "name": "close_window", "description": "Close a window" },
+    { "name": "click", "description": "Click a component by UID" },
+    { "name": "hover", "description": "Hover over a component" },
+    { "name": "focus", "description": "Focus a component" },
+    { "name": "type_text", "description": "Type text via keyboard events" },
+    { "name": "fill", "description": "Set the value of a text field, spinner, or slider" },
+    { "name": "select_option", "description": "Select an option in a combo box or list" },
+    { "name": "select_tree_node", "description": "Select a JTree node by path" },
+    { "name": "select_table_cell", "description": "Select a JTable cell" },
+    { "name": "select_menu_item", "description": "Invoke a menu item by path" },
+    { "name": "select_context_menu_item", "description": "Invoke a context (right-click) menu item" },
+    { "name": "press_key", "description": "Press a key or key combination" },
+    { "name": "drag", "description": "Drag from one component to another" },
+    { "name": "scroll", "description": "Scroll a component" },
+    { "name": "list_dialogs", "description": "List open dialogs" },
+    { "name": "handle_dialog", "description": "Click a button in an open dialog" },
+    { "name": "get_clipboard", "description": "Read the system clipboard" },
+    { "name": "set_clipboard", "description": "Write to the system clipboard" },
+    { "name": "take_screenshot", "description": "Capture a screenshot of a window or component" },
+    { "name": "wait_for", "description": "Wait for a UI condition" },
+    { "name": "evaluate_java", "description": "Evaluate Java code in the target JVM (disabled by default)" }
+  ],
+  "keywords": ["swing", "java", "ui-automation", "gui-testing", "desktop"],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}
