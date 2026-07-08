@@ -4,6 +4,8 @@
 
 An MCP (Model Context Protocol) server for interacting with Java Swing applications — inspired by [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp), but targeting any Swing UI instead of HTML pages.
 
+![swing-mcp driving the demo app: snapshots, clicks, form filling, tables, trees, menus, and dialogs](docs/demo.gif)
+
 ## Modules
 
 - `swing-mcp-server` — Spring Boot MCP server (stdio transport) exposing Swing automation tools.
