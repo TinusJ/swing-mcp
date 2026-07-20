@@ -75,3 +75,13 @@ See [docs/registry-publishing.md](docs/registry-publishing.md) for how publishin
 
 - The agent listens on the loopback interface only.
 - `evaluate_java` (arbitrary code execution in the target JVM) is disabled by default; enable with `swing.mcp.evaluate.enabled=true`.
+
+See [SECURITY.md](SECURITY.md) for the full security model and how to report vulnerabilities.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the PR workflow. Release history lives in [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+[MIT](LICENSE.md)

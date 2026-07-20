@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a problem with swing-mcp
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in as much detail as you can — it makes issues much faster to reproduce and fix.
+
+        **Security issues:** please do NOT report vulnerabilities here. See [SECURITY.md](../blob/main/SECURITY.md).
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: e.g. `fill` on a JComboBox editor throws IllegalStateException...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: e.g. The combo box editor text should be replaced with the given value.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact tool calls and arguments if possible. Reproductions against `swing-mcp-demo` are ideal.
+      placeholder: |
+        1. `launch_app` with `java -jar swing-mcp-demo-1.1.0.jar`
+        2. `take_snapshot`
+        3. `fill` uid=... value=...
+        4. Error: ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: swing-mcp version
+      placeholder: e.g. 1.1.0
+    validations:
+      required: true
+  - type: input
+    id: java
+    attributes:
+      label: Java version (server and target JVM)
+      placeholder: e.g. Temurin 21.0.4 (server), Oracle 17 (target app)
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: e.g. Claude Desktop, Claude Code, IntelliJ IDEA, VS Code, Cursor
+  - type: dropdown
+    id: attach-mode
+    attributes:
+      label: How was the agent loaded?
+      options:
+        - launch_app (-javaagent)
+        - attach_to_app (dynamic attach by PID)
+        - Not applicable
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Server or agent log output. This is automatically formatted as code, no backticks needed. Please redact anything sensitive.
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, snapshots, custom configuration (`swing.mcp.*` properties), target app details, etc.

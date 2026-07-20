@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest a new tool or improvement for swing-mcp
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Check the [tool roadmap](../blob/main/docs/tools/roadmap.md) and existing issues first to avoid duplicates.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the use case, not just the solution — e.g. what Swing UI pattern you can't automate today.
+      placeholder: e.g. I can't verify the contents of a JTabbedPane without clicking through every tab...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen? For new tools, sketch the tool name, inputs, and output.
+      placeholder: |
+        e.g. A `get_tab_info` tool:
+        - input: component uid
+        - output: tab titles, selected index, enabled state per tab
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you've tried, or other ways this could be solved.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this affect?
+      options:
+        - MCP tools (server)
+        - Agent (in-target-JVM behavior)
+        - Installation / client setup
+        - Documentation / skills
+        - Other
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Links, screenshots, or details about the Swing application you're automating.
